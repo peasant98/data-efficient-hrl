@@ -1,9 +1,12 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import distributions
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.nn.init as init
+
+from pfrl.nn.lmbda import Lambda
 
 import hiro.utils
 
@@ -30,6 +33,42 @@ class Actor(nn.Module):
         x = F.relu(self.l2(x))
         x = self.max_action * torch.tanh(self.l3(x)) 
         return x 
+
+
+class StochasticActor(nn.Module):
+    def __init__(self, state_dim, goal_dim, action_dim, max_action):
+        super(StochasticActor, self).__init__()
+        self.action_dim = action_dim
+        self.l1 = nn.Linear(state_dim + goal_dim, 300)
+        self.l2 = nn.Linear(300, 300)
+        self.l3 = nn.Linear(300, action_dim * 2)
+        self.lambda_fnc = Lambda(self.squashed_diagonal_gaussian_head)
+
+        self.max_action = max_action
+
+    def squashed_diagonal_gaussian_head(self, x):
+        """
+        taken from the SAC code.
+        """
+        assert x.shape[-1] == self.action_dim * 2
+
+        mean, log_scale = torch.chunk(x, 2, dim=-1)
+        log_scale = torch.clamp(log_scale, -20.0, 2.0)
+        var = torch.exp(log_scale * 2)
+        base_distribution = distributions.Independent(
+            distributions.Normal(loc=mean, scale=torch.sqrt(var)), 1
+        )
+        # cache_size=1 is required for numerical stability
+        return distributions.transformed_distribution.TransformedDistribution(
+            base_distribution, [distributions.transforms.TanhTransform(cache_size=1)]
+        )
+
+    def forward(self, x, g):
+        x = F.relu(self.l1(torch.cat([x, g], 1)))
+        x = F.relu(self.l2(x))
+        x = self.max_action * torch.tanh(self.l3(x))
+        # TODO -- return a probability distribution here
+        return x
 #
 #
 # class Critic(nn.Module):
