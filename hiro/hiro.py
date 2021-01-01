@@ -36,7 +36,11 @@ class Manager(object):
     def __init__(self, state_dim, goal_dim, action_dim, actor_lr,
                  critic_lr, candidate_goals, correction=True,
                  scale=10, actions_norm_reg=0, policy_noise=0.2,
-                 noise_clip=0.5):
+                 noise_clip=0.5, add_entropy=False, entropy_temp=0.0):
+        # changes for allowing entropy
+        self.add_entropy = add_entropy
+        self.entropy_temp = entropy_temp
+
         self.scale = scale
         self.actor = ManagerActor(state_dim, goal_dim, action_dim,
                                   scale=scale)
@@ -146,9 +150,9 @@ class Manager(object):
 
         logprob = -0.5*np.sum(np.linalg.norm(difference, axis=-1)**2, axis=-1)
         max_indices = np.argmax(logprob, axis=-1)
-        print(diff_goal[0, 0])
-        print(original_goal[0, 0])
-        print(candidates[0, max_indices[0]])
+        # print(diff_goal[0, 0])
+        # print(original_goal[0, 0])
+        # print(candidates[0, max_indices[0]])
 
         return candidates[np.arange(batch_size), max_indices]
 
@@ -178,7 +182,7 @@ class Manager(object):
             next_action = (self.actor_target(next_state, goal) + noise)
             next_action = torch.min(next_action, self.actor.scale)
             next_action = torch.max(next_action, -self.actor.scale)
-            print(next_action[0])
+            # print(next_action[0])
 
             target_Q1, target_Q2 = self.critic_target(next_state, goal,
                                           next_action)
