@@ -120,7 +120,7 @@ def run_environment(env_name, episode_length, num_episodes):
         obs = env.reset()
         for _ in range(episode_length):
             env.render()
-            print(env.get_image().shape)
+            # print(env.get_image().shape)
             obs, reward, done, _ = env.step(action_fn(obs))
             rewards[-1] += reward
             successes[-1] = success_fn(reward)
