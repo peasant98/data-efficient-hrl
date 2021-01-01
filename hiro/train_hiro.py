@@ -64,7 +64,7 @@ def evaluate_policy(env, writer, manager_policy, controller_policy,
                 avg_controller_rew += calculate_controller_reward(state, subgoal, new_state, ctrl_rew_scale)
 
                 state = new_state
-
+            print(state[:3])
         avg_reward /= eval_episodes
         avg_controller_rew /= global_steps
         avg_step_count = global_steps / eval_episodes
@@ -122,6 +122,7 @@ def run_hiro(args):
         controller_goal_dim = man_scale.shape[0]
         no_xy = False  # Can't just take out first dimensions; movement here is different than for ants.
     else:
+        print(args.env_name)
         # We'll be running on one of the various Ant envs
         env = EnvWithGoal(create_maze_env(args.env_name), args.env_name)
 
@@ -247,7 +248,7 @@ def run_hiro(args):
                                                                         args.ctrl_batch_size, args.ctrl_discount,
                                                                         args.ctrl_tau)
 
-                print(ctrl_act_loss, ctrl_crit_loss)
+                # print(ctrl_act_loss, ctrl_crit_loss)
                 writer.add_scalar('data/controller_actor_loss', ctrl_act_loss, total_timesteps)
                 writer.add_scalar('data/controller_critic_loss', ctrl_crit_loss, total_timesteps)
 
@@ -372,7 +373,8 @@ def run_hiro(args):
         timesteps_since_eval += 1
         timesteps_since_manager += 1
         timesteps_since_subgoal += 1
-
+        if total_timesteps % 1000 == 0:
+            print('total timesteps', total_timesteps)
         if timesteps_since_subgoal % args.manager_propose_freq == 0:
             # Finish, add transition
             manager_transition[1] = state
